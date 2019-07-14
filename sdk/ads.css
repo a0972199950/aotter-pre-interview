@@ -1,0 +1,53 @@
+.ad-banner {
+    width: 100%;
+    height: 100%;
+    border: 1px rgb(202, 202, 202) solid;
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+}
+
+.ad-banner__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ad-banner__content {
+    background: #E9E9ED;
+    padding: .625rem;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ad-banner__domain {
+    color: #5D646E;
+    margin: 0;
+    font-weight: 700;
+}
+
+.ad-banner__title {
+    margin: 0;
+    font-weight: 900;
+    color: black;
+}
+
+
+
+.ad-video {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.ad-video__iframe {
+    width: 100%;
+}
+
+.ad-video__img {
+    display: block;
+    width: 100%;
+}
