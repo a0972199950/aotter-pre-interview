@@ -1,20 +1,7 @@
-// (function(global, factory){
-//     return factory();
-
-
-// }(this, function(){
-//     var test = {
-//         name: "john"
-//     }
-
-//     return test;
-// }))
-
-
-const ad = function(mark, type){
+export default (id, type) => {
     class Ad {
-        constructor(mark, type) {
-            this.mark = mark;
+        constructor(id, type) {
+            this.id = id;
             this.type = type;
             this.calledImpressionApi = false;
         }
@@ -38,13 +25,11 @@ const ad = function(mark, type){
 
         // 外部Api: 開始載入廣告
         load(){
-            const that = this;
-            
+            const origin = this;            
             const request = new XMLHttpRequest();
             
             request.addEventListener("load", function () {
                 const ad = JSON.parse(this.response);
-                console.log(ad);
 
                 // 請求成功且有拿到廣告資訊
                 if(
@@ -52,14 +37,14 @@ const ad = function(mark, type){
                     ad.success // 有拿到廣告資訊
                 ){
                     // 插入廣告內容到DOM，成功回傳true，失敗回傳false
-                    const insertSuccess = that._insertAd(ad);                    
+                    const insertSuccess = origin._insertAd(ad);                    
 
                     if(insertSuccess){
-                        that.impressionUrl = ad.impression_url; // 儲存廣告顯示過半後的呼叫端點
-                        that._listenScroll(); // 開始監聽廣告是否顯示超過一半
-                        that.onAdLoaded ? (that.onAdLoaded()) : false; // 呼叫自定義事件on-ad-loaded
+                        origin.impressionUrl = ad.impression_url; // 儲存廣告顯示過半後的呼叫端點
+                        origin._listenScroll(); // 開始監聽廣告是否顯示超過一半
+                        origin.onAdLoaded ? (origin.onAdLoaded()) : false; // 呼叫自定義事件on-ad-loaded
                     } else {
-                        that.onAdFailed ? (that.onAdFailed("Failed to insert ad to DOM. Did you resgist 'data-ad' correctly?")) : false; // 呼叫自定義事件on-ad-failed
+                        origin.onAdFailed ? (origin.onAdFailed("Failed to insert ad to DOM. Did you resgist 'data-ad' correctly?")) : false; // 呼叫自定義事件on-ad-failed
                     }
                     
 
@@ -68,18 +53,18 @@ const ad = function(mark, type){
                     Math.floor(this.status / 100) === 2 && // http request成功
                     !ad.success // 沒有拿到廣告資訊
                 ) {
-                    that.onAdFailed ? (that.onAdFailed("No ad exists now")) : false; // 呼叫自定義事件on-ad-failed
+                    origin.onAdFailed ? (origin.onAdFailed("No ad exists now")) : false; // 呼叫自定義事件on-ad-failed
 
                 // 請求失敗
                 } else {
-                    that.onAdFailed ? (that.onAdFailed(`Server returned: ${this.status}`)) : false; // 呼叫自定義事件on-ad-failed
+                    origin.onAdFailed ? (origin.onAdFailed(`Server returned: ${this.status}`)) : false; // 呼叫自定義事件on-ad-failed
                 }
                 
             });
 
             
             request.addEventListener("error", function () {
-                that.onAdFailed ? (that.onAdFailed(`Request failed or blocked`)) : false; // 呼叫自定義事件on-ad-failed
+                origin.onAdFailed ? (origin.onAdFailed(`Request failed or blocked`)) : false; // 呼叫自定義事件on-ad-failed
             });
 
 
@@ -88,69 +73,59 @@ const ad = function(mark, type){
         }
 
         _insertAd(ad){
-            const adSpace = document.querySelector(`[data-ad="${this.mark}"]`);
+            const adSpace = document.querySelector(`[data-ad="${this.id}"]`);
             if(!adSpace) return false; // 廣告顯示區塊不存在，抓不到元素
-
-
-            //---------- 操作DOM ----------//
-            const createBanner = () => {
-                const adBanner = document.createElement("a");
-                const adBannerImg = document.createElement("img");
-                const adBannerContent = document.createElement("div");
-                const adBannerDomain = document.createElement("p");
-                const adBannerTitle = document.createElement("h3");
-
-                adBanner.classList.add("ad-banner");
-                adBannerImg.classList.add("ad-banner__img");
-                adBannerContent.classList.add("ad-banner__content");
-                adBannerDomain.classList.add("ad-banner__domain");
-                adBannerTitle.classList.add("ad-banner__title");
-
-                adBannerDomain.appendChild(document.createTextNode(ad.url.split("//")[1].split("/")[0].toUpperCase()))
-                adBannerTitle.appendChild(document.createTextNode(ad.title));
-                adBannerContent.appendChild(adBannerDomain);
-                adBannerContent.appendChild(adBannerTitle);
-                adBannerImg.src = ad.image;
-                adBanner.href = ad.url;
-                adBanner.appendChild(adBannerImg);
-                adBanner.appendChild(adBannerContent);
-
-                adSpace.appendChild(adBanner);
-            }
-
-
-            const createVideo = () => {
-                const adVideo = document.createElement("div");
-                const adVideoIframe = document.createElement("iframe");
-
-                adVideo.classList.add("ad-video");
-                adVideoIframe.classList.add("ad-video__iframe");
-
-                adVideoIframe.width = "100%";
-                adVideoIframe.height = "100%";
-                adVideoIframe.frameborder = "0";
-                adVideoIframe.src = ad.video_url;
-
-                adVideo.appendChild(adVideoIframe);
-                adSpace.appendChild(adVideo);
-            }
 
             switch(ad.type){
                 case "BANNER":
-                    createBanner();
+                    adSpace.innerHTML = this._createBannerHTML(ad);
                     break;
 
                 case "VIDEO":
-                    createVideo();
+                    adSpace.innerHTML = this._createVideoHTML(ad);
                     break;
-            }
+            };
 
             return true;
         }
 
+        _createBannerHTML(ad){
+            return `
+            <a href="${ad.url}" target="_blank" class="ad-banner">
+                <img class="ad-banner__img" src="${ad.image}">
+                <div class="ad-banner__content">
+                    <p class="ad-banner__domain">${ad.url.split("//")[1].split("/"[0])}</p>
+                    <h3 class="ad-banner__title">${ad.title}</h3>
+                    <div class="ad-banner__icon">i</div>
+                </div>
+            </a>
+            `;
+        }
+
+        _createVideoHTML(ad){
+            return `
+            <div class="ad-video">
+                <img class="ad-video__img" src="${ad.image}">
+
+                <h3 class="ad-video__title">${ad.title}</h3>
+
+                <a href="${ad.video_url}" target="_blank">
+                    <div class="ad-video__btn">
+                    <div class="ad-video__icon"></div>
+                    </div>
+                </a>
+
+                <div class="ad-video__social">
+                    <div>&#128077;195</div>
+                    <div>&#128172;14</div>
+                </div>
+            </div>
+            `;
+        }
+
         _listenScroll(){
-            const that = this;
-            const adSpace = document.querySelector(`[data-ad="${this.mark}"]`);
+            const origin = this;
+            const adSpace = document.querySelector(`[data-ad="${this.id}"]`);
             const getElementTop = (element) => {
                 let actualTop = element.offsetTop
                 let current = element.offsetParent
@@ -167,7 +142,7 @@ const ad = function(mark, type){
             }
             const calculateShowedProportion = () => {
                 // 顯示過半Api只呼叫一次
-                if(that.calledImpressionApi){
+                if(origin.calledImpressionApi){
                     window.removeEventListener("scroll", calculateShowedProportion);
                     return;
                 };
@@ -176,7 +151,8 @@ const ad = function(mark, type){
                 const adSpaceMiddleHeight = getElementTop(adSpace) + adSpace.clientTop + (adSpace.clientHeight/2);
                 
                 if(showedHeight > adSpaceMiddleHeight){
-                    that._adShowed();
+                    origin.calledImpressionApi = true; // 成功呼叫過一次廣告顯示過半api
+                    origin._adShowed();
                 }
             };
 
@@ -186,135 +162,23 @@ const ad = function(mark, type){
         }
 
         _adShowed(){
-            const that = this;
-
             const request = new XMLHttpRequest();
-            // request.addEventListener("load", () => {
-            //     alert("success");
-            //     that.calledImpressionApi = true; // 成功呼叫過一次廣告顯示過半api
-            //     this.onAdImpression ? (this.onAdImpression()) : false; // 呼叫自定義事件on-ad-impression
-            // });
-            
+            request.addEventListener("load", () => {
+                this.onAdImpression ? (this.onAdImpression()) : false; // 呼叫自定義事件on-ad-impression
+            });
+
+            request.addEventListener("error", () => {
+                // impression_url未開放跨域請求，因此這邊即使請求失敗也先執行onAdImpression
+                this.onAdImpression ? (this.onAdImpression()) : false; // 呼叫自定義事件on-ad-impression
+            });            
 
             request.open("GET", this.impressionUrl);
-            request.send();
-
-            // 開發用，無視呼叫api是否有成功
-            that.calledImpressionApi = true; // 成功呼叫過一次廣告顯示過半api
-            this.onAdImpression ? (this.onAdImpression()) : false; // 呼叫自定義事件on-ad-impression
-            
+            request.send();            
         }
         
     }
 
-
-
-    return new Ad(mark, type);
+    type = type ? type.toUpperCase() : null;
+    return new Ad(id, type);
 }
 
-
-
-
-export default ad;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//! moment.js locale configuration
-
-// ;
-// (function (global, factory) {
-//     typeof exports === 'object' && typeof module !== 'undefined' &&
-//         typeof require === 'function' ? factory(require('../moment')) :
-//         typeof define === 'function' && define.amd ? define(['../moment'], factory) :
-//         factory(global.moment)
-// }(this, (function (moment) {
-//     'use strict';
-
-
-//     var af = moment.defineLocale('af', {
-//         months: 'Januarie_Februarie_Maart_April_Mei_Junie_Julie_Augustus_September_Oktober_November_Desember'.split('_'),
-//         monthsShort: 'Jan_Feb_Mrt_Apr_Mei_Jun_Jul_Aug_Sep_Okt_Nov_Des'.split('_'),
-//         weekdays: 'Sondag_Maandag_Dinsdag_Woensdag_Donderdag_Vrydag_Saterdag'.split('_'),
-//         weekdaysShort: 'Son_Maa_Din_Woe_Don_Vry_Sat'.split('_'),
-//         weekdaysMin: 'So_Ma_Di_Wo_Do_Vr_Sa'.split('_'),
-//         meridiemParse: /vm|nm/i,
-//         isPM: function (input) {
-//             return /^nm$/i.test(input);
-//         },
-//         meridiem: function (hours, minutes, isLower) {
-//             if (hours < 12) {
-//                 return isLower ? 'vm' : 'VM';
-//             } else {
-//                 return isLower ? 'nm' : 'NM';
-//             }
-//         },
-//         longDateFormat: {
-//             LT: 'HH:mm',
-//             LTS: 'HH:mm:ss',
-//             L: 'DD/MM/YYYY',
-//             LL: 'D MMMM YYYY',
-//             LLL: 'D MMMM YYYY HH:mm',
-//             LLLL: 'dddd, D MMMM YYYY HH:mm'
-//         },
-//         calendar: {
-//             sameDay: '[Vandag om] LT',
-//             nextDay: '[Môre om] LT',
-//             nextWeek: 'dddd [om] LT',
-//             lastDay: '[Gister om] LT',
-//             lastWeek: '[Laas] dddd [om] LT',
-//             sameElse: 'L'
-//         },
-//         relativeTime: {
-//             future: 'oor %s',
-//             past: '%s gelede',
-//             s: '\'n paar sekondes',
-//             ss: '%d sekondes',
-//             m: '\'n minuut',
-//             mm: '%d minute',
-//             h: '\'n uur',
-//             hh: '%d ure',
-//             d: '\'n dag',
-//             dd: '%d dae',
-//             M: '\'n maand',
-//             MM: '%d maande',
-//             y: '\'n jaar',
-//             yy: '%d jaar'
-//         },
-//         dayOfMonthOrdinalParse: /\d{1,2}(ste|de)/,
-//         ordinal: function (number) {
-//             return number + ((number === 1 || number === 8 || number >= 20) ? 'ste' : 'de'); // Thanks to Joris Röling : https://github.com/jjupiter
-//         },
-//         week: {
-//             dow: 1, // Maandag is die eerste dag van die week.
-//             doy: 4 // Die week wat die 4de Januarie bevat is die eerste week van die jaar.
-//         }
-//     });
-
-//     return af;
-
-// })));
