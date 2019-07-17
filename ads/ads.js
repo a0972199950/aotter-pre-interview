@@ -45,7 +45,12 @@ export default (id, type) => {
                         origin._listenScroll(); // 開始監聽廣告是否顯示超過一半
                         origin.onAdLoaded ? (origin.onAdLoaded()) : false; // 呼叫自定義事件on-ad-loaded
                     } else {
-                        origin.onAdFailed ? (origin.onAdFailed("Failed to insert ad to DOM. Did you resgist 'data-ad' correctly?")) : false; // 呼叫自定義事件on-ad-failed
+                        const error = {
+                            code: 101,
+                            msg: "Failed to insert ad to DOM. Did you resgist 'data-ad' correctly?"
+                        };
+                        origin._report(error.code);
+                        origin.onAdFailed ? (origin.onAdFailed(error.msg)) : false; // 呼叫自定義事件on-ad-failed
                     }
                     
 
@@ -54,18 +59,33 @@ export default (id, type) => {
                     Math.floor(this.status / 100) === 2 && // http request成功
                     !ad.success // 沒有拿到廣告資訊
                 ) {
-                    origin.onAdFailed ? (origin.onAdFailed("No ad exists now")) : false; // 呼叫自定義事件on-ad-failed
+                    const error = {
+                        code: 102,
+                        msg: "No ad exists now"
+                    };
+                    origin._report(error.code);
+                    origin.onAdFailed ? (origin.onAdFailed(error.msg)) : false; // 呼叫自定義事件on-ad-failed
 
                 // 請求失敗
                 } else {
-                    origin.onAdFailed ? (origin.onAdFailed(`Server returned: ${this.status}`)) : false; // 呼叫自定義事件on-ad-failed
+                    const error = {
+                        code: 103,
+                        msg: `Server returned: ${this.status}`
+                    };
+                    origin._report(error.code);
+                    origin.onAdFailed ? (origin.onAdFailed(error.msg)) : false; // 呼叫自定義事件on-ad-failed
                 }
                 
             });
 
             
             request.addEventListener("error", function () {
-                origin.onAdFailed ? (origin.onAdFailed(`Request failed or blocked`)) : false; // 呼叫自定義事件on-ad-failed
+                const error = {
+                    code: 104,
+                    msg: `Request failed or blocked`
+                };
+                origin._report(error.code);
+                origin.onAdFailed ? (origin.onAdFailed(error.msg)) : false; // 呼叫自定義事件on-ad-failed
             });
 
 
@@ -171,10 +191,12 @@ export default (id, type) => {
                     return;
                 };
 
-                const showedHeight = window.pageYOffset + window.innerHeight;
+                const windowTopHeight = window.pageYOffset;
+                const windowBottomHeight = window.pageYOffset + window.innerHeight;
                 const adSpaceMiddleHeight = getElementTop(adSpace) + adSpace.clientTop + (adSpace.clientHeight/2);
 
-                if(showedHeight > adSpaceMiddleHeight){
+
+                if(windowBottomHeight > adSpaceMiddleHeight && windowTopHeight < adSpaceMiddleHeight){
                     origin._setTimer();
                 } else {
                     origin._clearTimer();
@@ -220,9 +242,79 @@ export default (id, type) => {
             request.send();            
         }
         
-    }
+    };
+
+    // 用於收集使用者端錯誤的中介層
+    // 把 Ad.prototype下的所有方法包在一個try catch中，並在catch裡呼叫報錯函數
+    class AdBugReport extends Ad{
+        constructor(){
+            try{
+                super(...arguments);
+            } catch(e){this._report(e)};
+        }
+
+        listen(){
+            try{
+                return this.__proto__.__proto__.listen.call(this, ...arguments);
+            } catch(e){this._report(e)};
+        }
+
+        load(){
+            try{
+                return this.__proto__.__proto__.load.call(this, ...arguments);
+            } catch(e){this._report(e)};
+        }
+
+        _insertAd(){
+            try{
+                return this.__proto__.__proto__._insertAd.call(this, ...arguments);
+            } catch(e){this._report(e)};
+        }
+
+        _createBannerHTML(){
+            try{
+                return this.__proto__.__proto__._createBannerHTML.call(this, ...arguments);
+            } catch(e){this._report(e)};
+        }
+
+        _listenScroll(){
+            try{
+                return this.__proto__.__proto__._listenScroll.call(this, ...arguments);
+            } catch(e){this._report(e)};
+        }
+
+        _setTimer(){
+            try{
+                return this.__proto__.__proto__._setTimer.call(this, ...arguments);
+            } catch(e){this._report(e)};
+        }
+
+        _clearTimer(){
+            try{
+                return this.__proto__.__proto__._clearTimer.call(this, ...arguments);
+            } catch(e){this._report(e)};
+        }
+
+        _adShowed(){
+            try{
+                return this.__proto__.__proto__._adShowed.call(this, ...arguments);
+            } catch(e){this._report(e)};
+        }
+
+        // 報錯函數
+        // reportUrl為後端開放的報錯端口，利用<img>的src夾帶錯誤訊息後傳出
+        _report(e){
+            const reportUrl = "http://report.com/error/";
+            const reporter = document.createElement("img");
+            reporter.src = reportUrl + e;
+        }
+    };
 
     type = type ? type.toUpperCase() : null;
-    return new Ad(id, type);
+
+    // 回傳包含報錯中介層的Ad實例
+    return new AdBugReport(id, type);
 }
+
+
 

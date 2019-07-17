@@ -1,4 +1,4 @@
-import Ads from "../../sdk/ads";
+import Ads from "../../ads/ads";
 
 describe("Ads", () => {
 	it("is a function", () => {

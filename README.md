@@ -1,34 +1,16 @@
-# js-ad-sdk
+> 需配合aotter-pre-interview-server使用
 
-## Project setup
+## 安裝套件
 ```
 npm install
 ```
 
-### Compiles and hot-reloads for development
+### 開啟測試網頁
 ```
 npm run serve
 ```
 
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Run your tests
-```
-npm run test
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Run your unit tests
+### 執行測試
 ```
 npm run test:unit
 ```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
